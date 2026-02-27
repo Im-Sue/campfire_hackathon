@@ -6,9 +6,9 @@
   <img src="https://img.shields.io/badge/License-MIT-green?style=for-the-badge" alt="License"/>
 </p>
 
-# 🔥 Campfire — 基于 Monad 的预测市场 & 夺宝平台
+# 🔥 Campfire — 基于 Monad 的预测市场 & AI Agent & 夺宝平台
 
-**Campfire** 是一个去中心化的预测市场与游戏化夺宝平台，部署在 **Monad Testnet** 上。它将事件驱动的预测交易与 VRF 驱动的链上抽奖系统相结合，打造透明、公平、有趣的 Web3 体验。
+**Campfire** 是一个去中心化的预测市场、AI Agent 与游戏化夺宝平台，部署在 **Monad Testnet** 上。它将事件驱动的预测交易、AI 智能代理与 VRF 驱动的链上抽奖系统相结合，打造透明、公平、有趣的 Web3 体验。
 
 > 🏆 为 Monad 黑客松而构建
 
