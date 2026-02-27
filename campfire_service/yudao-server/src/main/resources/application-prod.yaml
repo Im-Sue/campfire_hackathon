@@ -1,0 +1,253 @@
+server:
+  port: 48080
+
+--- #################### 数据库相关配置 ####################
+spring:
+  autoconfigure:
+    # noinspection SpringBootApplicationYaml
+    exclude:
+      - com.alibaba.druid.spring.boot.autoconfigure.DruidDataSourceAutoConfigure # 排除 Druid 的自动配置，使用 dynamic-datasource-spring-boot-starter 配置多数据源
+      - org.springframework.ai.vectorstore.qdrant.autoconfigure.QdrantVectorStoreAutoConfiguration # 禁用 AI 模块的 Qdrant，手动创建
+      - org.springframework.ai.vectorstore.milvus.autoconfigure.MilvusVectorStoreAutoConfiguration # 禁用 AI 模块的 Milvus，手动创建
+  # 数据源配置项
+  datasource:
+    druid: # Druid 【监控】相关的全局配置
+      web-stat-filter:
+        enabled: true
+      stat-view-servlet:
+        enabled: true
+        allow: # 设置白名单，不填则允许所有访问
+        url-pattern: /druid/*
+        login-username: admin # 生产环境建议修改
+        login-password: admin123 # 生产环境建议修改
+      filter:
+        stat:
+          enabled: true
+          log-slow-sql: true # 慢 SQL 记录
+          slow-sql-millis: 100
+          merge-sql: true
+        wall:
+          config:
+            multi-statement-allow: true
+    dynamic: # 多数据源配置
+      druid: # Druid 【连接池】相关的全局配置
+        initial-size: 5 # 初始连接数
+        min-idle: 10 # 最小连接池数量
+        max-active: 50 # 最大连接池数量（生产环境调大）
+        max-wait: 60000 # 配置获取连接等待超时的时间，单位：毫秒（1 分钟）
+        time-between-eviction-runs-millis: 60000 # 配置间隔多久才进行一次检测，检测需要关闭的空闲连接，单位：毫秒（1 分钟）
+        min-evictable-idle-time-millis: 600000 # 配置一个连接在池中最小生存的时间，单位：毫秒（10 分钟）
+        max-evictable-idle-time-millis: 1800000 # 配置一个连接在池中最大生存的时间，单位：毫秒（30 分钟）
+        validation-query: SELECT 1 FROM DUAL # 配置检测连接是否有效
+        test-while-idle: true
+        test-on-borrow: false
+        test-on-return: false
+        pool-prepared-statements: true # 是否开启 PreparedStatement 缓存
+        max-pool-prepared-statement-per-connection-size: 20 # 每个连接缓存的 PreparedStatement 数量
+      primary: master
+      datasource:
+        master:
+          # 通过 Docker 启动参数覆盖，这里是默认值
+          url: jdbc:mysql://127.0.0.1:3306/ruoyi-vue-pro?useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true&nullCatalogMeansCurrent=true&rewriteBatchedStatements=true
+          username: root
+          password: your_db_password_here
+        slave: # 从库配置
+          lazy: true # 开启懒加载，保证启动速度
+          url: jdbc:mysql://127.0.0.1:3306/ruoyi-vue-pro?useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true&rewriteBatchedStatements=true&nullCatalogMeansCurrent=true
+          username: root
+          password: your_db_password_here
+
+  # Redis 配置
+  data:
+    redis:
+      host: 127.0.0.1
+      port: 6379
+      database: 0
+      password: # 通过 Docker 启动参数覆盖
+
+--- #################### 定时任务相关配置 ####################
+
+# Quartz 配置项，对应 QuartzProperties 配置类
+# Spring @Scheduled 线程池配置
+spring:
+  task:
+    scheduling:
+      pool:
+        size: 15 # 默认为1，扩大以避免多个 @Scheduled 任务互相阻塞
+      thread-name-prefix: scheduled-
+  quartz:
+    auto-startup: true # 生产环境开启定时任务
+    scheduler-name: schedulerName
+    job-store-type: jdbc
+    wait-for-jobs-to-complete-on-shutdown: true
+    properties:
+      org:
+        quartz:
+          scheduler:
+            instanceName: schedulerName
+            instanceId: AUTO
+          jobStore:
+            class: org.springframework.scheduling.quartz.LocalDataSourceJobStore
+            isClustered: true
+            clusterCheckinInterval: 15000
+            misfireThreshold: 60000
+          threadPool:
+            threadCount: 25
+            threadPriority: 5
+            class: org.quartz.simpl.SimpleThreadPool
+    jdbc:
+      initialize-schema: NEVER
+
+--- #################### 消息队列相关 ####################
+
+# rocketmq 配置项，对应 RocketMQProperties 配置类
+rocketmq:
+  name-server: 127.0.0.1:9876 # RocketMQ Namesrv
+
+spring:
+  # RabbitMQ 配置项，对应 RabbitProperties 配置类
+  rabbitmq:
+    host: 127.0.0.1 # RabbitMQ 服务的地址
+    port: 5672 # RabbitMQ 服务的端口
+    username: guest # RabbitMQ 服务的账号
+    password: guest # RabbitMQ 服务的密码
+  # Kafka 配置项，对应 KafkaProperties 配置类
+  kafka:
+    bootstrap-servers: 127.0.0.1:9092 # 指定 Kafka Broker 地址
+
+--- #################### 服务保障相关配置 ####################
+
+# Lock4j 配置项
+lock4j:
+  acquire-timeout: 3000 # 获取分布式锁超时时间，默认为 3000 毫秒
+  expire: 30000 # 分布式锁的超时时间，默认为 30 毫秒
+
+--- #################### 监控相关配置 ####################
+
+# Actuator 监控端点的配置项
+management:
+  endpoints:
+    web:
+      base-path: /actuator
+      exposure:
+        include: health,info # 生产环境只暴露必要的端点
+
+# Spring Boot Admin 配置项
+spring:
+  boot:
+    admin:
+      # Spring Boot Admin Client 客户端的相关配置
+      client:
+        url: http://127.0.0.1:${server.port}/${spring.boot.admin.context-path}
+        instance:
+          service-host-type: IP
+      # Spring Boot Admin Server 服务端的相关配置
+      context-path: /admin
+
+# 日志文件配置
+logging:
+  file:
+    name: /yudao-server/logs/yudao-server.log
+  level:
+    cn.iocoder.yudao: INFO
+    org.springframework: WARN
+    root: INFO
+    # HTTP 调试日志（排查 DeepSeek API 问题，排查完成后删除）
+    # org.springframework.web.client: DEBUG
+    # org.springframework.ai.deepseek: DEBUG
+
+debug: false
+
+--- #################### 芋道相关配置 ####################
+
+yudao:
+  captcha:
+    enable: false # 生产环境开启验证码
+  security:
+    mock-enable: false # 生产环境关闭 mock
+  access-log:
+    enable: true # 生产环境开启访问日志
+  demo: false
+  pay:
+    order-notify-url: https://your-domain.com/admin-api/pay/notify/order # 支付渠道的【支付】回调地址
+    refund-notify-url: https://your-domain.com/admin-api/pay/notify/refund # 支付渠道的【退款】回调地址
+    transfer-notify-url: https://your-domain.com/admin-api/pay/notify/transfer # 支付渠道的【转账】回调地址
+  tencent-lbs-key: your_tencent_lbs_key # QQ 地图的密钥
+
+--- #################### 微信公众号、小程序相关配置 ####################
+# 即使不使用微信登录，也需要配置占位值，否则会启动报错
+wx:
+  mp: # 公众号配置
+    app-id: placeholder # 占位值，实际使用时替换
+    secret: placeholder
+    config-storage:
+      type: RedisTemplate
+      key-prefix: wx
+      http-client-type: HttpClient
+  miniapp: # 小程序配置
+    appid: placeholder # 占位值，实际使用时替换
+    secret: placeholder
+    config-storage:
+      type: RedisTemplate
+      key-prefix: wa
+      http-client-type: HttpClient
+
+--- #################### 社交登录相关配置 ####################
+
+justauth:
+  enabled: true
+  type:
+    DINGTALK: # 钉钉
+      client-id: placeholder
+      client-secret: placeholder
+      ignore-check-redirect-uri: true
+    WECHAT_ENTERPRISE: # 企业微信
+      client-id: placeholder
+      client-secret: placeholder
+      agent-id: 1000004
+      ignore-check-redirect-uri: true
+    # noinspection SpringBootApplicationYaml
+    WECHAT_MINI_PROGRAM: # 微信小程序
+      client-id: ${wx.miniapp.appid}
+      client-secret: ${wx.miniapp.secret}
+      ignore-check-redirect-uri: true
+      ignore-check-state: true
+    WECHAT_MP: # 微信公众号
+      client-id: ${wx.mp.app-id}
+      client-secret: ${wx.mp.secret}
+      ignore-check-redirect-uri: true
+    ALIPAY: # 支付宝小程序
+      client-id: placeholder
+      client-secret: placeholder
+      alipay-public-key: placeholder
+      ignore-check-redirect-uri: true
+      ignore-check-state: true
+  cache:
+    type: REDIS
+    prefix: 'social_auth_state:'
+    timeout: 24h
+
+app:
+  invite:
+    base-url: https://www.campfire.fun
+
+--- #################### Treasure 夺宝模块配置 ####################
+
+treasure:
+  blockchain:
+    rpc-url: https://testnet-rpc.monad.xyz
+    chain-id: 10143
+    private-key: ${TREASURE_PRIVATE_KEY:placeholder} # 通过 Docker ARGS 注入，禁止明文写入
+    gas-limit: 5000000
+  contract:
+    address: "0xF8c02cCf233BB5A8FAE9C5df45DE3cba1F4F31b3"
+    switchboard-vrf-address: "0x36825bf3Fbdf5a29E2d5148bfe7Dcf7B5639e320"
+    vrf-fee: 100000000000000000  # 0.1 MON
+    mock-vrf-address: "0xdc75962BB68E6c66C7d7605576A8AF7F8918dAcE"
+  event-sync:
+    enabled: true
+    interval: 10000  # 10秒
+    block-batch-size: 100
+    start-block: 0
+    max-retry-count: 3
+    retry-interval: 5000

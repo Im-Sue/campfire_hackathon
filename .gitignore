@@ -1,0 +1,49 @@
+# Environment
+.env
+.env.local
+.env.*.local
+
+# Sensitive files
+wallet-info.json
+*.key
+*.pem
+
+# Java build
+target/
+*.class
+*.jar
+*.war
+
+# IDE
+.idea/
+*.iml
+*.iws
+*.ipr
+.vscode/
+.settings/
+.classpath
+.project
+.factorypath
+
+# Node
+node_modules/
+
+# Hardhat
+cache/
+artifacts/
+typechain-types/
+
+# Maven
+.flattened-pom.xml
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+npm-debug.log*
+
+# Coverage
+coverage/
+coverage.json

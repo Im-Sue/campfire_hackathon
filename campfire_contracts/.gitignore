@@ -1,0 +1,28 @@
+node_modules/
+.env
+.env.local
+.env.*.local
+
+# 钱包敏感信息
+wallet-info.json
+*.key
+*.pem
+
+# Hardhat files
+cache/
+artifacts/
+typechain-types/
+
+# Coverage
+coverage/
+coverage.json
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# OS
+.DS_Store
+Thumbs.db

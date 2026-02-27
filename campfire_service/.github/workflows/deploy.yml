@@ -1,0 +1,83 @@
+name: Build and Deploy Backend
+
+on:
+  push:
+    branches: [ campfire-jdk17 ]
+  workflow_dispatch:  # 允许手动触发
+
+env:
+  IMAGE_NAME: campfire-server
+  CONTAINER_NAME: campfire-server
+  APP_PORT: 48080
+
+jobs:
+  build-and-deploy:
+    runs-on: self-hosted  # 使用自托管 Runner
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up JDK 17
+      uses: actions/setup-java@v4
+      with:
+        java-version: '17'
+        distribution: 'temurin'
+        cache: maven
+
+    - name: Build with Maven
+      run: |
+        mvn clean package -DskipTests
+        echo "✅ Maven build completed"
+
+    - name: Stop existing container
+      run: |
+        docker stop ${{ env.CONTAINER_NAME }} || true
+        docker rm ${{ env.CONTAINER_NAME }} || true
+        echo "✅ Old container removed"
+
+    - name: Build Docker image
+      run: |
+        docker build -t ${{ env.IMAGE_NAME }}:latest -f yudao-server/Dockerfile ./yudao-server
+        echo "✅ Docker image built"
+
+    - name: Run Docker container
+      run: |
+        docker run -d \
+          --name ${{ env.CONTAINER_NAME }} \
+          --restart unless-stopped \
+          --network host \
+          -v /var/www/Campfire/server/logs:/yudao-server/logs \
+          -v /var/www/Campfire/resource:/var/www/Campfire/resource \
+          --env-file /var/www/Campfire/server/.env \
+          -e TZ=Asia/Shanghai \
+          -e JAVA_OPTS="-Xms1024m -Xmx2048m -XX:+UseG1GC -XX:MaxGCPauseMillis=200 -XX:+UseStringDeduplication -Djava.security.egd=file:/dev/./urandom" \
+          -e ARGS="--spring.profiles.active=prod \
+                   --spring.datasource.dynamic.datasource.master.url=${{ secrets.DB_URL }} \
+                   --spring.datasource.dynamic.datasource.master.username=${{ secrets.DB_USERNAME }} \
+                   --spring.datasource.dynamic.datasource.master.password=${{ secrets.DB_PASSWORD }} \
+                   --spring.datasource.dynamic.datasource.slave.url=${{ secrets.DB_URL }} \
+                   --spring.datasource.dynamic.datasource.slave.username=${{ secrets.DB_USERNAME }} \
+                   --spring.datasource.dynamic.datasource.slave.password=${{ secrets.DB_PASSWORD }} \
+                   --spring.data.redis.host=${{ secrets.REDIS_HOST }} \
+                   --spring.data.redis.port=${{ secrets.REDIS_PORT }} \
+                   --spring.data.redis.password=${{ secrets.REDIS_PASSWORD }}" \
+          ${{ env.IMAGE_NAME }}:latest
+        echo "✅ Container started"
+
+    - name: Health check
+      run: |
+        echo "⏳ Waiting for application to start (60s)..."
+        sleep 60
+        if curl -sf http://localhost:${{ env.APP_PORT }}/actuator/health > /dev/null; then
+          echo "✅ Health check passed!"
+        else
+          echo "⚠️ Health check failed, checking container logs..."
+          docker logs --tail 50 ${{ env.CONTAINER_NAME }}
+        fi
+
+    - name: Cleanup old images
+      run: |
+        docker image prune -f
+        echo "✅ Old images cleaned up"
+

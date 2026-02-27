@@ -1,0 +1,26 @@
+{
+  "name": "contracts",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "hardhat test"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "devDependencies": {
+    "@nomicfoundation/hardhat-chai-matchers": "^2.1.0",
+    "@nomicfoundation/hardhat-ethers": "^3.0.0",
+    "@types/chai": "^4.2.0",
+    "@types/mocha": "^10.0.0",
+    "@types/node": "^18.0.0",
+    "chai": "^4.2.0",
+    "ethers": "^6.4.0",
+    "hardhat": "^2.22.0"
+  },
+  "dependencies": {
+    "dotenv": "^17.2.4"
+  }
+}
